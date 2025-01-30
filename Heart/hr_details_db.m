@@ -30,12 +30,12 @@ ntrial = 4;  %assuming that all pre, post and cond have the same number of trial
 ttime = 3.5;  %time in sec before and after stim to calculate rate
 stimdelay=1; %time in sec after stim onset
 prebuff=500; %before stim in s1e4
-postbuff=0.3*1e4; %after stim
+postbuff=0.4*1e4; %after stim
 stimdur=1200;
 
 % Get directories
-% Dir = PathForExperimentsERC_Dima('UMazePAG');
-Dir = PathForExperimentsERC_DimaMAC('UMazePAG');
+Dir = PathForExperimentsERC_Dima('UMazePAG');
+% Dir = PathForExperimentsERC_DimaMAC('UMazePAG');
 Dir = RestrictPathForExperiment(Dir,'Group', 'ECG');
 
 %% PreAllocate memory
@@ -134,6 +134,7 @@ rateprelfp = nan(length(Dir.path), ntrial,...
 ratepostlfp = nan(length(Dir.path), ntrial,...
     maxmun_stim, (ttime+stimdelay)*1E4);
 FreezeInStim = cell(length(Dir.path), ntrial, maxmun_stim);
+StimEpoch = cell(length(Dir.path), ntrial, maxmun_stim);
 clear tstim_unroll
 
 numstim_PreFreeze = 0;
@@ -159,6 +160,9 @@ for imouse=1:length(Dir.path)
                 intervalSet(tstim{imouse,itrial}(istim)-ttime*1e4, tstim{imouse,itrial}(istim)+(ttime+stimdelay)*1e4));
             FreezeInStim{imouse, itrial, istim} = intervalSet(Start(FreezeInStim{imouse, itrial, istim})-tstim{imouse,itrial}(istim)+ttime*1e4,...
                 End(FreezeInStim{imouse, itrial, istim})-tstim{imouse,itrial}(istim)+ttime*1e4);
+            StimEpoch{imouse, itrial, istim} = and(sessions{imouse}{idcond(itrial)},...
+                intervalSet(tstim{imouse, itrial}(istim)-ttime*1e4, tstim{imouse, itrial}(istim)+(ttime+stimdelay)*1e4));
+            
             
             % Find out whether the mouse was freezing before stimulus
             UnCorrIStart = Start(FreezeInStim{imouse, itrial, istim}) - ttime*1e4;
@@ -253,6 +257,12 @@ ratepre_PreNONFreeze_std = squeeze(nanstd(nanmean(ratepre_PreNONFreeze_mean,2)))
 ratepost_PreFreeze_std = squeeze(nanstd(nanmean(ratepost_PreFreeze_mean,2)));
 ratepost_PreNONFreeze_std = squeeze(nanstd(nanmean(ratepost_PreNONFreeze_mean,2)));
 
+ratepre_PreFreeze_mouse = squeeze(nanmean(nanmean(ratepre_PreFreeze_mean,3),2));
+ratepre_PreNONFreeze_mouse = squeeze(nanmean(nanmean(ratepre_PreNONFreeze_mean,3),2));
+ratepost_PreFreeze_mouse = squeeze(nanmean(nanmean(ratepost_PreFreeze_mean,3),2));
+ratepost_PreNONFreeze_mouse = squeeze(nanmean(nanmean(ratepost_PreNONFreeze_mean,3),2));
+
+
 ratepre_trial_mean = nanmean(nanmean(ratepre_mean(:,:,ttime*1E4-19999:ttime*1E4),3),2);
 ratepost_trial_mean = nanmean(nanmean(ratepost_mean(:,:,stimdur+1:stimdur+20000),3),2);
 
@@ -264,6 +274,38 @@ nbstim_all = sum(sum(nbstim));
 %#                        F I G U R E S
 %#
 %#####################################################################
+
+%% Check quality of HB detection
+
+% DO ANIMATION
+nbstim_mouse = sum(nbstim,2);
+for imouse=1:length(Dir.path)
+    f = figure('units', 'normalized', 'outerposition', [0 0 0.9 0.8], 'Name', Dir.name{imouse});
+    title(Dir.name{imouse});
+    tabs = arrayfun(@(itab) uitab('Title', ['Trial' num2str(itab)]), 1:nbstim_mouse(imouse));
+    ax = arrayfun(@(tab) axes(tab, 'NextPlot', 'add'), tabs);
+    
+    axnum = 0;
+    for itrial=1:ntrial
+        for istim = 1:nbstim(imouse,itrial)
+            axnum = axnum+1;
+            
+            plot(ax(axnum),Range(Restrict(HB{imouse}.EKG.LFP, StimEpoch{imouse, itrial, istim}), 's'),...
+            Data(Restrict(HB{imouse}.EKG.LFP, StimEpoch{imouse, itrial, istim})),...
+                'LineWidth', 2, 'Color', 'k'); % starts 500 ms after because median is culculated on trailing data (inverse for post)
+            
+            plot(ax(axnum),Range(Restrict(HB{imouse}.EKG.HBTimes, StimEpoch{imouse, itrial, istim}), 's'),...
+            ones(length(Restrict(HB{imouse}.EKG.HBTimes, StimEpoch{imouse, itrial, istim})))*1e4,...
+                '*', 'Color', 'r');
+
+            
+            xlabel(ax(axnum),'time (s)')
+            ylabel(ax(axnum),'Hz')
+            title(ax(axnum),[Dir.name{imouse} ' Tr.' num2str(itrial) ' Stim.' num2str(istim)], 'FontSize', 14)
+            
+        end
+    end
+end
 
 %% Single stim mouse trial check-up
 
@@ -312,43 +354,81 @@ end
 
 %%  Overall separation PREFREEZE
 supertit = 'Heart Rate Dynamics locked to stim';
-f1 = figure('Color',[1 1 1], 'units', 'normalized', 'outerposition', [0 0 0.605 0.63],'Name', supertit, 'NumberTitle','off')
+f1 = figure('units', 'normalized', 'outerposition', [0 0 0.605 0.63],'Name', supertit, 'NumberTitle','off')
 
 rectangle('Position',[ttime*1E4-prebuff,0,prebuff+postbuff,20],'FaceColor',[.9 .9 .9],'EdgeColor','none',...
     'LineWidth',.01)
 hold on
-
 rectangle('Position',[ttime*1E4,0,stimdur,20],'FaceColor',[.6 .6 .6],'EdgeColor','none',...
     'LineWidth',.01)
-hold on
-
 h_freeze = shadedErrorBar([5001:ttime*1E4-prebuff],ratepre_PreFreeze(5001:end-prebuff),ratepre_PreFreeze_std(5001:end-prebuff),...
     {'LineWidth', 2, 'Color', 'b'},1);
 h_nonfreeze = shadedErrorBar([5001:ttime*1E4-prebuff],ratepre_PreNONFreeze(5001:end-prebuff),ratepre_PreNONFreeze_std(5001:end-prebuff),...
     {'LineWidth', 2, 'Color', 'r'},1);
-hold on
 shadedErrorBar([ttime*1E4+postbuff:(ttime*2+stimdelay)*1e4-5000],ratepost_PreFreeze(postbuff:end-5000),...
     ratepost_PreFreeze_std(postbuff:end-5000),{'LineWidth', 2,'Color', 'b'},1);
 shadedErrorBar([ttime*1E4+postbuff:(ttime*2+stimdelay)*1e4-5000],ratepost_PreNONFreeze(postbuff:end-5000),...
     ratepost_PreNONFreeze_std(postbuff:end-5000),{'LineWidth', 2,'Color', 'r'},1);
+hold off
 
 ylim([9 14])
 xlim([5000 (ttime*2+stimdelay)*1e4-5000])
 set(gca, 'Xtick', 5001:5000:((ttime*2+stimdelay)*1e4),...
     'Xticklabel', num2cell([-1*(ttime-.5):.5:(stimdelay+ttime)]),...
+    'YTick', [9:14], 'YTickLabel', num2cell([9:14]),...
     'FontSize', 16, 'FontWeight', 'bold')
 ax = gca;
 ax.Layer = 'top';
-hold off
 xlabel('time (s)', 'FontWeight', 'bold')
 ylabel('Hz')
 title('Heart Rate Dynamics locked to PAG stim')
 legend([h_freeze.mainLine h_nonfreeze.mainLine],{['Stim when freezing (N=' num2str(numstim_PreFreeze) ')'],...
     ['Stim when moving (N=' num2str(numstim_PreNONFreeze) ')']}, 'Location', 'SouthEast')
 if sav
-    saveFigure(f1,'Mean_PAGHeart_FreezeSep',[dropbox dir_out]);
-    saveas(f1,[dropbox dir_out 'Mean_PAGHeart_FreezeSep.fig']);
+    saveFigure(f1,'Mean_PAGHeart_FreezeSep1',[dropbox dir_out]);
+    saveas(f1,[dropbox dir_out 'Mean_PAGHeart_FreezeSep1.fig']);
 end
+
+%% 
+Pl = {ratepre_PreNONFreeze_mouse, ratepost_PreNONFreeze_mouse, ratepre_PreFreeze_mouse, ratepost_PreFreeze_mouse};
+Cols = {[0.9 0.7 0.7], [0.9 0.2 0.2], [0.7 0.7 0.9], [0.2 0.2 0.9]};
+xlabs = {'Pre','Post'};
+tit = ['Average heart rate (N=' num2str(length(Dir.path)) ')'];
+f3 = figure('units', 'normalized', 'outerposition', [0 0 0.4 0.6]);
+MakeBoxPlot_DB(Pl,Cols,1:4,[],0);
+set(gca,'XTick', [1:4], 'XTickLabel', xlabs, 'FontName', 'Helvetica',...
+    'YTick', [9:14], 'YTickLabel', num2cell([9:14]),...
+    'FontSize', 16, 'FontWeight', 'bold');
+ylabel('Heart rate (Hz)', 'FontName', 'Helvetica', 'FontSize', 16, 'FontWeight', 'bold');
+title(tit, 'FontName', 'Helvetica', 'FontSize', 18, 'FontWeight', 'bold');
+ylim([10 14])
+[p,h5,stats] = signrank(hbcond_nonfreeze_meanall, hbcond_freeze_meanall);
+% if p < 0.05
+%     sigstar_DB(Pl{{1,2}},p,0, 'StarSize',14);
+% end
+yl=ylim;
+% Add groups - code stolen from <stackoverflow.com/questions/33165830/double-ticklabel-in-matlab>
+groupX = [1.5 3.5]; %// central value of each group
+groupY = yl(1) - yl(2)*0.035; %// vertical position of texts. Adjust as needed
+deltaY = .03; %// controls vertical compression of axis. Adjust as needed
+groupNames = {'Moving', 'Freezing'};
+for g = 1:numel(groupX)
+    h = text(groupX(g), groupY, groupNames{g}, 'Fontsize', 23, 'Fontweight', 'bold');
+    %// create text for group with appropriate font size and weight
+    pos = get(h, 'Position');
+    ext = get(h, 'Extent');
+    pos(1) = pos(1) - ext(3)/2; %// horizontally correct position to make it centered
+    set(h, 'Position', pos); %// set corrected position for text
+end
+pos = get(gca, 'position');
+pos(2) = pos(2) + deltaY; %// vertically compress axis to make room for texts
+set(gca, 'Position', pos); %/ set corrected position for axis
+%//
+if sav
+    saveFigure(f3,'Mean_PAGHeart_FreezeSep_sum',[dropbox dir_out]);
+    saveas(f3,[dropbox dir_out 'Mean_PAGHeart_FreezeSep_sum.fig']);
+end
+
 
 %% HR freezing/nonfrezing
 Pl = {hbcond_nonfreeze_meanall, hbcond_freeze_meanall};

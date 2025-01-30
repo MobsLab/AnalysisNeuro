@@ -1,4 +1,4 @@
-function MakeViolinPlot_DB(A,Cols,X,Legends,ShowPoints)
+function a = MakeViolinPlot_DB(A,Cols,X,Legends,ShowPoints)
 % Input variables
 % A = your data in a cell format A = {Data1,Data2,Data3}
 % Cols = The color for each set of data Cols = {[1 0 0],[0 0 1],[0 1 0]}
@@ -31,11 +31,11 @@ end
 
 for k = 1 : length(A)
     if sum(isnan(A{k}))<length(A{k})
-        a=iosr.statistics.boxPlot(X(k),A{k}(:),'boxColor', Cols{k}, 'boxAlpha', 0, 'lineColor',[0.95 0.95 0.95],...
+        a{k}=iosr.statistics.boxPlot(X(k),A{k}(:),'boxColor', Cols{k}, 'boxAlpha', 0, 'lineColor',[0.95 0.95 0.95],...
             'medianColor','k','boxWidth','auto', 'LineColor', 'k', 'LineWidth', 3, 'showOutliers',false,'showViolin',true,'violinColor', Cols{k});
-        a.handles.upperWhiskers.Visible='on';a.handles.upperWhiskerTips.Visible='on';
-        a.handles.lowerWhiskers.Visible='on';a.handles.lowerWhiskerTips.Visible='on';
-        a.handles.medianLines.LineWidth = 5;
+        a{k}.handles.upperWhiskers.Visible='on';a{k}.handles.upperWhiskerTips.Visible='on';
+        a{k}.handles.lowerWhiskers.Visible='on';a{k}.handles.lowerWhiskerTips.Visible='on';
+        a{k}.handles.medianLines.LineWidth = 5;
         hold on
         if ShowPoints
             handlesplot=plotSpread(A{k}(:),'distributionColors','k','xValues',X(k),'spreadWidth',0.8); hold on;

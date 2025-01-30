@@ -1,4 +1,4 @@
-function RemoveArtefactualSpikes(Dir, CleanEpoch)
+function RemoveArtefactualSpikes(Dir, CleanEpoch, BaseFileName)
 
 %% Hyperparameters
 samplingrate = 20000;
@@ -12,7 +12,6 @@ end
 
 %% Load ExpeInfo
 load([Dir '/ExpeInfo.mat']);
-BaseFileName = ['M' num2str(ExpeInfo.nmouse) '_' ExpeInfo.date '_' ExpeInfo.SessionType];
 
 
 for igroup = 1:ExpeInfo.SpikeGroupInfo.SpikeGroupNum
@@ -23,7 +22,9 @@ for igroup = 1:ExpeInfo.SpikeGroupInfo.SpikeGroupNum
     
     spkfid = fopen([Dir '/' BaseFileName '.spk.' num2str(igroup)]);
     spkfile = fread(spkfid, 'int16');
-    spkfile = reshape(spkfile, [ChanNum, samplesinspike,length(spkfile)/(ChanNum*samplesinspike)]);
+    newspkfile = reshape(spkfile, [ChanNum, samplesinspike,length(spkfile)/(ChanNum*samplesinspike)]);
+    spkfile = newspkfile; % protecting by instabilities in the OS of type A=function(A)
+    clear newspikefile
 
     %% Remove spikes with artefacts
     

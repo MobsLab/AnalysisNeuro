@@ -46,9 +46,9 @@ title('Delay between location decoded and following stimulation', 'FontSize', 16
 xlabel('Delay (ms)')
 xline(36, 'Color', 'r', 'Linewidth', 2)
 legend(['N=' num2str(length(dd)) ' stims'], '36 ms')
-% 
-% saveas(f2, '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing_results/OnlineDecoding/August2020/delays_2h.fig');
-% saveFigure(f2, 'delays_2h', '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing_results/OnlineDecoding/August2020/');
+
+saveas(f2, '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing_results/OnlineDecoding/September2020/delays_2h_Striatum.fig');
+saveFigure(f2, 'delays_2h_Striatum', '/home/mobsrick/Dropbox/MOBS_workingON/Dima/Ongoing_results/OnlineDecoding/September2020/');
 
 %% Histogram of error
 f1 = figure('Units', 'normalized', 'OuterPosition', [0.3 0.5 0.4 0.5]);
